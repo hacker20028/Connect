@@ -1,16 +1,48 @@
-# connect
 
-A new Flutter chat application.
+# Connect
 
-## Getting Started
+Connect is a Chat Application developed using Flutter. This Application aims to provide the most sercured chatting environment.
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
+## Features
+---
+- Hassle free registration/Login
+- Cross platform
+- Send chat messages
+- Send Images
+- Update profile
+- last seen
+- Time stamp
+- Message read tick
+- View Other's profile 
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Screenshots
+---
+<img src="https://i.ibb.co/mGGX75H/1-splash-screen.png" alt='Splash Screen'  width="200px" height="441px">
+.
+<img src="https://i.ibb.co/vk48Gcd/2-login-screen.png" alt='Login Screen'  width="200px" height="441px">
+.
+<img src="https://i.ibb.co/yBLRt3H/4-home-screen.png" alt='Login Screen'  width="200px" height="441px">
+
+.
+
+## Contributing
+---
+Contributions are always welcome!
+
+Any Contributions to this project will be verified before merging.
+
+Please adhere to this project's `code of conduct`.
+
+
+## Authors
+---
+- [@Aryan](https://github.com/hacker20028)
+- [@Hrutuja](https://github.com/hrutujaX)
+  
+
+## License
+---
+[MIT](https://choosealicense.com/licenses/mit/)
+
