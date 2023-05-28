@@ -20,12 +20,11 @@ Connect is a Chat Application developed using Flutter. This Application aims to 
 ## Screenshots
 ---
 <img src="https://i.ibb.co/mGGX75H/1-splash-screen.png" alt='Splash Screen'  width="200px" height="441px">
-.
+
 <img src="https://i.ibb.co/vk48Gcd/2-login-screen.png" alt='Login Screen'  width="200px" height="441px">
-.
+
 <img src="https://i.ibb.co/yBLRt3H/4-home-screen.png" alt='Login Screen'  width="200px" height="441px">
 
-.
 
 ## Contributing
 ---
