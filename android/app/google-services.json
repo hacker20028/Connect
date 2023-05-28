@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "626301594254",
+    "project_id": "connect-katham",
+    "storage_bucket": "connect-katham.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:626301594254:android:807a7d655eeaf755bfb7df",
+        "android_client_info": {
+          "package_name": "com.aryan.connect.connect"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "626301594254-649kmafajvatjmlr35boci3ild13punn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aryan.connect.connect",
+            "certificate_hash": "3bc42a16a641c3fbfbe2da08cf4087dfd9bca5a2"
+          }
+        },
+        {
+          "client_id": "626301594254-e9855cim8rv9madoct6vvdimc6n3ik07.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAs_Ns-eIvamkfONcVll-012MKW6tOj9bs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "626301594254-e9855cim8rv9madoct6vvdimc6n3ik07.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "626301594254-bmninvhjjqso0o3ckfr1u3tsbrtlbp69.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.aryan.connect.connect"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
