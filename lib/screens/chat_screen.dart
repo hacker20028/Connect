@@ -314,7 +314,13 @@ Widget _chatInput(){
           //Send Messdage Button
           MaterialButton(onPressed: (){
             if(_textController.text.isNotEmpty){
-              APIs.sendMessage(widget.user, _textController.text, Type.text);
+              if(_list.isEmpty){
+                // On first Message add user to my_user collection of chat
+                APIs.sendFirstMessage(widget.user, _textController.text, Type.text);
+              }else {
+                // Simply send message
+                APIs.sendMessage(widget.user, _textController.text, Type.text);
+              }
               _textController.text = '';
             }
           },
