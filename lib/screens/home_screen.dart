@@ -110,52 +110,72 @@ class _HomeScreenState extends State<HomeScreen> {
           //Floating Button Icon to add new user
           floatingActionButton: Padding(
             padding: const EdgeInsets.only(bottom: 35),
-            child: FloatingActionButton(onPressed: () async {
-              //_addChatUserDialog();
+            child: FloatingActionButton(onPressed: () {
+              _addChatUserDialog();
             },
               child: const Icon(Icons.add_circle_outline),
             ),
           ),
 
           body: StreamBuilder(
-            stream: APIs.getAllUsers(),
-            builder: (context, snapshot) {
+            stream: APIs.getMyUserId(),
 
-              switch (snapshot.connectionState){
-                // If Data is Loading
+            //get id of only known users
+            builder: (context, snapshot) {
+              switch (snapshot.connectionState) {
+              //if data is loading
                 case ConnectionState.waiting:
                 case ConnectionState.none:
-                  return const Center(child: CircularProgressIndicator(),);
+                  return const Center(child: CircularProgressIndicator());
 
-                  // If some or all Data is loaded then show it
+              //if some or all data is loaded then show it
                 case ConnectionState.active:
                 case ConnectionState.done:
+                   return StreamBuilder(
+                    stream: APIs.getAllUsers(
+                        snapshot.data?.docs.map((e) => e.id).toList() ?? []),
 
+                    //get only those user, who's ids are provided
+                    builder: (context, snapshot) {
+                      switch (snapshot.connectionState) {
+                      //if data is loading
+                        case ConnectionState.waiting:
+                        case ConnectionState.none:
+                        // return const Center(
+                        //     child: CircularProgressIndicator());
 
-                  final data = snapshot.data?.docs;
-                  _list = data?.map((e) => ChatUser.fromJson(e.data())).toList() ?? [];
+                        //if some or all data is loaded then show it
+                        case ConnectionState.active:
+                        case ConnectionState.done:
+                          final data = snapshot.data?.docs;
+                          _list = data
+                              ?.map((e) => ChatUser.fromJson(e.data()))
+                              .toList() ??
+                              [];
 
-                if (_list.isNotEmpty){
-                  return ListView.builder(
-                      itemCount: _isSearching ? _searchList.length : _list.length,
-                      padding: EdgeInsets.only(top: mq.height * .01),
-                      physics: const BouncingScrollPhysics(),
-                      itemBuilder: (context, index){
-                        return ChatUserCard(
-                          user: _isSearching ? _searchList[index] : _list[index],);
-                        // return Text('Name: ${list[index]}');
-                      });
-                }else{
-                  return const Center(
-                    child: Text('No Connections Found!',
-                    style: TextStyle(
-              fontSize: 20,
-              ),),
+                          if (_list.isNotEmpty) {
+                            return ListView.builder(
+                                itemCount: _isSearching
+                                    ? _searchList.length
+                                    : _list.length,
+                                padding: EdgeInsets.only(top: mq.height * .01),
+                                physics: const BouncingScrollPhysics(),
+                                itemBuilder: (context, index) {
+                                  return ChatUserCard(
+                                      user: _isSearching
+                                          ? _searchList[index]
+                                          : _list[index]);
+                                });
+                          } else {
+                            return const Center(
+                              child: Text('No Connections Found!',
+                                  style: TextStyle(fontSize: 20)),
+                            );
+                          }
+                      }
+                    },
                   );
-                }
               }
-
-
             },
           ),
         ),
@@ -184,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.deepOrange,
                 size: 28,
               ),
-              Text('  Add User')
+              Text(' Add User')
             ],
           ),
 
