@@ -1,14 +1,12 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connect/models/message.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart';
-
 import '../models/chat_user.dart';
 
 class APIs{
@@ -50,8 +48,6 @@ class APIs{
       }
     });
   }
-
-
 
   // for sending push notification
   static Future<void> sendPushNotification(
@@ -169,7 +165,7 @@ class APIs{
         whereIn: userIds.isEmpty
             ? ['']
             : userIds) //because empty list throws an error
-        // .where('id', whereIn: userIds)
+        // .where('id', whereIn: userIds) // Was causing the error
         //.where('id', isNotEqualTo: user.uid)
         .snapshots();
 }
@@ -303,6 +299,38 @@ static Future<void> updateMessageReadStatus(Message message) async {
     //updating image in firestore database
     final imageUrl = await ref.getDownloadURL();
     await sendMessage(chatUser, imageUrl, Type.image);
+  }
+
+  //delete message
+  static Future<void> deleteMessage(Message message) async {
+    await firestore
+        .collection('chats/${getConversationId(message.toid)}/messages/')
+        .doc(message.sent)
+        .delete();
+
+    if (message.type == Type.image) {
+      await storage.refFromURL(message.msg).delete();
+    }
+  }
+
+  //delete message
+  static Future<void> deleteMessageTest(Message message) async {
+    await firestore
+        .collection('chats/${getConversationId(message.toid)}/messages/')
+        .doc(message.sent)
+        .update({'msg' : 'Yaha par bhi Delete hi kar tu 😒'});
+
+    if (message.type == Type.image) {
+      await storage.refFromURL(message.msg).delete();
+    }
+  }
+
+  //update message
+  static Future<void> updateMessage(Message message, String updatedMsg) async {
+    await firestore
+        .collection('chats/${getConversationId(message.toid)}/messages/')
+        .doc(message.sent)
+        .update({'msg': updatedMsg});
   }
 
 }
