@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 hintText: 'Enter Name or Email'
               ),
               autofocus: true,
-              style: TextStyle(fontSize: 17,
+              style: const TextStyle(fontSize: 17,
               letterSpacing: 0.5),
               // When search text changes then update search list
               onChanged: (val){

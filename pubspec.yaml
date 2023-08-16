@@ -74,6 +74,15 @@ dependencies:
   # For creating Notification Channel
   flutter_notification_channel: ^2.0.0
 
+  # To save images in the gallery
+  gallery_saver: ^2.3.2
+
+  # To check internet connectivity (in-update)
+  connectivity: ^3.0.6
+
+  # To detect Keyboard Visibility (in-update)
+  flutter_keyboard_visibility: ^5.4.1
+
 
 flutter_launcher_icons:
   android: "ic_launcher"

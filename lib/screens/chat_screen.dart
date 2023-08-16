@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connect/helper/my_date_until.dart';
@@ -16,6 +15,7 @@ import '../models/message.dart';
 
 class ChatScreen extends StatefulWidget {
   final ChatUser user;
+
   //const ChatScreen({Key, required this.user? key}) : super(key: key);
 
   const ChatScreen({super.key, required this.user});
@@ -62,83 +62,90 @@ class _ChatScreenState extends State<ChatScreen> {
               flexibleSpace: _appBar(),
             ),
 
-            backgroundColor: Colors.white,
+           // backgroundColor: Colors.white,
 
             // Chat Screen Body
-            body: Column(children: [
-              Expanded(
-                child: StreamBuilder(
-                 stream: APIs.getAllMessages(widget.user),
-                  builder: (context, snapshot) {
-
-                    switch (snapshot.connectionState){
-                    // If Data is Loading
-                      case ConnectionState.waiting:
-                      case ConnectionState.none:
-                        return const Center(child: CircularProgressIndicator(),);
-                        ///Can use the code below to hide the progress indicator while loading chats
-                        //return cosnt SizedBox();
-
-                    // If some or all Data is loaded then show it
-                      case ConnectionState.active:
-                      case ConnectionState.done:
-
-
-                        final data = snapshot.data?.docs;
-                        //log('Data: ${jsonEncode(data![0].data())}');
-                        _list = data
-                            ?.map((e) => Message.fromJson(e.data()))
-                            .toList() ?? [];
-
-                        if (_list.isNotEmpty){
-                          return ListView.builder(
-                            reverse: true,
-                              itemCount: _list.length,
-                              padding: EdgeInsets.only(top: mq.height * .01),
-                              physics: const BouncingScrollPhysics(),
-                              itemBuilder: (context, index){
-                                 return MessageCard(message: _list[index]);
-                                   //Text('Message: ${_list[index]}');
-                              });
-                        }else{
-                          return const Center(
-                            child: Text('Say Hii! 👋',
-                              style: TextStyle(
-                                fontSize: 20,
-                              ),),
-                          );
-                        }
-                    }
-
-
-                  },
-                ),
+            body:
+            Container(
+              decoration: const BoxDecoration(
+                // To add add a picture background in the chat screen session
+                image: DecorationImage(image: AssetImage('images/bgc.png'),
+                fit: BoxFit.cover)
               ),
+              child: Column(children: [
+                Expanded(
+                  child: StreamBuilder(
+                   stream: APIs.getAllMessages(widget.user),
+                    builder: (context, snapshot) {
 
-              if (_isUploading)
-              const Align(
-                alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-                    child: CircularProgressIndicator(strokeWidth: 2,),
-                  )),
+                      switch (snapshot.connectionState){
+                      // If Data is Loading
+                        case ConnectionState.waiting:
+                        case ConnectionState.none:
+                          return const Center(child: CircularProgressIndicator(),);
+                          ///Can use the code below to hide the progress indicator while loading chats
+                          //return const SizedBox();
 
-              // Chat input field
-              _chatInput(),
+                      // If some or all Data is loaded then show it
+                        case ConnectionState.active:
+                        case ConnectionState.done:
 
-              // Show images on keyboard emoji button click & vice-versa
-              if(_showEmoji)
-              SizedBox(
-                height: mq.height * .35,
-                child: EmojiPicker(
-                onBackspacePressed: () {
-                // Do something when the user taps the backspace button (optional)
-                // Set it to null to hide the Backspace-Button
-                },
-                textEditingController: _textController, // pass here the same [TextEditingController] that is connected to your input field, usually a [TextFormField]
-                config: Config(
-                columns: 8,
-                emojiSizeMax: 32 * (Platform.isIOS ? 1.30 : 1.0),
+
+                          final data = snapshot.data?.docs;
+                          //log('Data: ${jsonEncode(data![0].data())}');
+                          _list = data
+                              ?.map((e) => Message.fromJson(e.data()))
+                              .toList() ?? [];
+
+                          if (_list.isNotEmpty){
+                            return ListView.builder(
+                              reverse: true,
+                                itemCount: _list.length,
+                                padding: EdgeInsets.only(top: mq.height * .01),
+                                physics: const BouncingScrollPhysics(),
+                                itemBuilder: (context, index){
+                                   return MessageCard(message: _list[index]);
+                                     //Text('Message: ${_list[index]}');
+                                });
+                          }else{
+                            return const Center(
+                              child: Text('Say Hii! 👋',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                ),),
+                            );
+                          }
+                      }
+
+
+                    },
+                  ),
+                ),
+
+                if (_isUploading)
+                const Align(
+                  alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+                      child: CircularProgressIndicator(strokeWidth: 2,),
+                    )),
+
+                // Chat input field
+                _chatInput(),
+
+                // Show images on keyboard emoji button click & vice-versa
+                if(_showEmoji)
+                SizedBox(
+                  height: mq.height * .35,
+                  child: EmojiPicker(
+                  onBackspacePressed: () {
+                  // Do something when the user taps the backspace button (optional)
+                  // Set it to null to hide the Backspace-Button
+                  },
+                  textEditingController: _textController, // pass here the same [TextEditingController] that is connected to your input field, usually a [TextFormField]
+                  config: Config(
+                  columns: 8,
+                  emojiSizeMax: 32 * (Platform.isIOS ? 1.30 : 1.0),
       //       verticalSpacing: 0,
       //       horizontalSpacing: 0,
       //       gridPadding: EdgeInsets.zero,
@@ -164,8 +171,9 @@ class _ChatScreenState extends State<ChatScreen> {
       // buttonMode: ButtonMode.MATERIAL,
       ),
       ),
-              )
-            ],),
+                )
+              ],),
+            ),
           ),
         ),
       ),
@@ -173,6 +181,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
   // App Bar Widget
   Widget _appBar(){
+
     return InkWell(
       onTap: (){
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ViewProfileScreen(user: widget.user)));
@@ -186,7 +195,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
         return Row(children: [
           // Back Button
-          IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.arrow_back, color: Colors.black54,)),
+          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back, color: Colors.black54,)),
 
           // User Profile Picture
           ClipRRect(
@@ -217,6 +226,8 @@ class _ChatScreenState extends State<ChatScreen> {
               // For Adding Some Space
               const SizedBox(height: 2,),
 
+
+              
               // To show Last seen of the user
                Text(list.isNotEmpty
                    ? list[0].isOnline
@@ -233,7 +244,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
 
-  //Bottom Chat input feild
+  //Bottom Chat input field
 Widget _chatInput(){
     // Input Field & Button
     return Padding(
@@ -254,17 +265,19 @@ Widget _chatInput(){
                     _showEmoji = !_showEmoji;
                   });
                 },
-                    icon: Icon(Icons.emoji_emotions, color: Colors.deepOrange,size: 25,)),
+                    icon: const Icon(Icons.emoji_emotions, color: Colors.deepOrange,size: 25,)),
 
                 //Input Field
                  Expanded(child: TextField(
+                   textCapitalization: TextCapitalization.sentences,
                   controller: _textController,
                   keyboardType: TextInputType.multiline,
                   maxLines: null,
                   onTap: (){
                     setState(() {
-                      if (_showEmoji)
-                      _showEmoji = !_showEmoji;
+                      if (_showEmoji) {
+                        _showEmoji = !_showEmoji;
+                      }
                     });
                   },
                   decoration: const InputDecoration(
@@ -288,7 +301,7 @@ Widget _chatInput(){
                     await APIs.sendChatImage(widget.user ,File(i.path));}
                   setState(() => _isUploading = false);
                 },
-                    icon: Icon(Icons.image, color: Colors.deepOrange,size: 26,)),
+                    icon: const Icon(Icons.image, color: Colors.deepOrange,size: 26,)),
 
                 // Take image form Camera Button
                 IconButton(onPressed: () async {
@@ -303,7 +316,7 @@ Widget _chatInput(){
                     setState(() => _isUploading = false);
                   }
                 },
-                    icon: Icon(Icons.camera_alt_rounded, color: Colors.deepOrange, size: 26,)),
+                    icon: const Icon(Icons.camera_alt_rounded, color: Colors.deepOrange, size: 26,)),
 
                 //For Adding Some Space
                 SizedBox(width: mq.width * .015,),
@@ -325,10 +338,10 @@ Widget _chatInput(){
             }
           },
             minWidth: 0,
-            shape: CircleBorder(),
-            padding: EdgeInsets.only(top: 10, bottom: 10, right: 5, left: 10),
+            shape: const CircleBorder(),
+            padding: const EdgeInsets.only(top: 10, bottom: 10, right: 5, left: 10),
             color: Colors.deepOrange,
-          child: Icon(Icons.send,
+          child: const Icon(Icons.send,
           color: Colors.white,
           size: 28,),)
         ],

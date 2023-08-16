@@ -1,5 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.aryan.connect.connect">
+
+    <!-- storage permission-->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <!-- internet permission -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
    <application
         android:label="Connect"
         android:name="${applicationName}"
