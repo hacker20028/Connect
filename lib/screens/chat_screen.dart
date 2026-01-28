@@ -1,22 +1,22 @@
 import 'dart:developer';
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:connect/config/app_colors.dart';
 import 'package:connect/helper/my_date_until.dart';
 import 'package:connect/models/chat_user.dart';
 import 'package:connect/screens/view_profile_screen.dart';
+import 'package:connect/widgets/games/game_selector_bottom_sheet.dart';
 import 'package:connect/widgets/message_card.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../api/apis.dart';
 import '../main.dart';
 import '../models/message.dart';
 
 class ChatScreen extends StatefulWidget {
   final ChatUser user;
-
-  //const ChatScreen({Key, required this.user? key}) : super(key: key);
 
   const ChatScreen({super.key, required this.user});
 
@@ -25,327 +25,732 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-   List <Message> _list = [];
-
-   // For handling text messages
-   final _textController = TextEditingController();
-
-  // static final bool isIOS = (_operatingSystem == "ios");
-
-   // _showEmoji -- For storing value whether to show or hide emoji
-   // _isUploading -- For checking if images are uploading or not?
-   bool _showEmoji = false, _isUploading = false;
+  List<Message> _list = [];
+  final _textController = TextEditingController();
+  bool _showEmoji = false, _isUploading = false;
+  bool _isTyping = false;
+  Message? _replyingTo;
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: SafeArea(
-        child: WillPopScope(
-          // If Emoji is on & back is pressed then close only Emoji
-          // or else simply close current screen on back button click
-          onWillPop: (){
-            if(_showEmoji){
-              setState(() {
-                _showEmoji = !_showEmoji;
-              });
-              return Future.value(false);
-            }else{
-              return Future.value(true);
-            }
+  void initState() {
+    super.initState();
+    _textController.addListener(_onTextChanged);
+  }
 
-          },
-          child: Scaffold(
-            // App Bar
-            appBar: AppBar(
-              automaticallyImplyLeading: false,
-              flexibleSpace: _appBar(),
-            ),
+  void _onTextChanged() {
+    final isTyping = _textController.text.isNotEmpty;
+    if (isTyping != _isTyping) {
+      setState(() {
+        _isTyping = isTyping;
+      });
+      APIs.updateTypingStatus(widget.user.id, isTyping);
+    }
+  }
 
-           // backgroundColor: Colors.white,
+  @override
+  void dispose() {
+    _textController.removeListener(_onTextChanged);
+    _textController.dispose();
+    APIs.updateTypingStatus(widget.user.id, false);
+    super.dispose();
+  }
 
-            // Chat Screen Body
-            body:
-            Container(
-              decoration: const BoxDecoration(
-                // To add add a picture background in the chat screen session
-                image: DecorationImage(image: AssetImage('images/bgc.png'),
-                fit: BoxFit.cover)
-              ),
-              child: Column(children: [
-                Expanded(
-                  child: StreamBuilder(
-                   stream: APIs.getAllMessages(widget.user),
-                    builder: (context, snapshot) {
+  void _handleReply(Message message) {
+    setState(() {
+      _replyingTo = message;
+    });
+    FocusScope.of(context).requestFocus(FocusNode());
+  }
 
-                      switch (snapshot.connectionState){
-                      // If Data is Loading
-                        case ConnectionState.waiting:
-                        case ConnectionState.none:
-                          return const Center(child: CircularProgressIndicator(),);
-                          ///Can use the code below to hide the progress indicator while loading chats
-                          //return const SizedBox();
+  void _cancelReply() {
+    setState(() {
+      _replyingTo = null;
+    });
+  }
 
-                      // If some or all Data is loaded then show it
-                        case ConnectionState.active:
-                        case ConnectionState.done:
-
-
-                          final data = snapshot.data?.docs;
-                          //log('Data: ${jsonEncode(data![0].data())}');
-                          _list = data
-                              ?.map((e) => Message.fromJson(e.data()))
-                              .toList() ?? [];
-
-                          if (_list.isNotEmpty){
-                            return ListView.builder(
-                              reverse: true,
-                                itemCount: _list.length,
-                                padding: EdgeInsets.only(top: mq.height * .01),
-                                physics: const BouncingScrollPhysics(),
-                                itemBuilder: (context, index){
-                                   return MessageCard(message: _list[index]);
-                                     //Text('Message: ${_list[index]}');
-                                });
-                          }else{
-                            return const Center(
-                              child: Text('Say Hii! 👋',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                ),),
-                            );
-                          }
-                      }
-
-
-                    },
-                  ),
-                ),
-
-                if (_isUploading)
-                const Align(
-                  alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-                      child: CircularProgressIndicator(strokeWidth: 2,),
-                    )),
-
-                // Chat input field
-                _chatInput(),
-
-                // Show images on keyboard emoji button click & vice-versa
-                if(_showEmoji)
-                SizedBox(
-                  height: mq.height * .35,
-                  child: EmojiPicker(
-                  onBackspacePressed: () {
-                  // Do something when the user taps the backspace button (optional)
-                  // Set it to null to hide the Backspace-Button
-                  },
-                  textEditingController: _textController, // pass here the same [TextEditingController] that is connected to your input field, usually a [TextFormField]
-                  config: Config(
-                  columns: 8,
-                  emojiSizeMax: 32 * (Platform.isIOS ? 1.30 : 1.0),
-      //       verticalSpacing: 0,
-      //       horizontalSpacing: 0,
-      //       gridPadding: EdgeInsets.zero,
-      // initCategory: Category.RECENT,
-      // bgColor: Color(0xFFF2F2F2),
-      // indicatorColor: Colors.blue,
-      // iconColor: Colors.grey,
-      // iconColorSelected: Colors.blue,
-      // backspaceColor: Colors.blue,
-      // skinToneDialogBgColor: Colors.white,
-      // skinToneIndicatorColor: Colors.grey,
-      // enableSkinTones: true,
-      // showRecentsTab: true,
-      // recentsLimit: 28,
-      // noRecents: const Text(
-      // 'No Recents',
-      // style: TextStyle(fontSize: 20, color: Colors.black26),
-      // textAlign: TextAlign.center,
-      // ), // Needs to be const Widget
-      // loadingIndicator: const SizedBox.shrink(), // Needs to be const Widget
-      // tabIndicatorAnimDuration: kTabScrollDuration,
-      // categoryIcons: const CategoryIcons(),
-      // buttonMode: ButtonMode.MATERIAL,
-      ),
-      ),
-                )
-              ],),
-            ),
+  void _showAttachmentMenu(bool isDarkMode) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: isDarkMode ? AppColors.darkSurface : AppColors.lightSurface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
           ),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            _AttachmentOption(
+              icon: CupertinoIcons.photo,
+              title: 'Gallery',
+              color: AppColors.primary,
+              onTap: () async {
+                Navigator.pop(context);
+                final ImagePicker picker = ImagePicker();
+                final List<XFile> images =
+                await picker.pickMultiImage(imageQuality: 70);
+                for (var i in images) {
+                  setState(() => _isUploading = true);
+                  await APIs.sendChatImage(widget.user, File(i.path));
+                }
+                setState(() => _isUploading = false);
+              },
+            ),
+
+            _AttachmentOption(
+              icon: CupertinoIcons.camera,
+              title: 'Camera',
+              color: AppColors.accent,
+              onTap: () async {
+                Navigator.pop(context);
+                final ImagePicker picker = ImagePicker();
+                final XFile? image = await picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 70,
+                );
+                if (image != null) {
+                  setState(() => _isUploading = true);
+                  await APIs.sendChatImage(widget.user, File(image.path));
+                  setState(() => _isUploading = false);
+                }
+              },
+            ),
+
+            _AttachmentOption(
+              icon: CupertinoIcons.smiley,
+              title: 'Emoji',
+              color: const Color(0xFFFFD93D),
+              onTap: () {
+                Navigator.pop(context);
+                setState(() {
+                  _showEmoji = !_showEmoji;
+                });
+              },
+            ),
+
+            _AttachmentOption(
+              icon: CupertinoIcons.game_controller,
+              title: 'Games',
+              color: const Color(0xFF00D25B),
+              onTap: () {
+                Navigator.pop(context);
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (context) => GameSelectorBottomSheet(opponent: widget.user),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
   }
-  // App Bar Widget
-  Widget _appBar(){
 
-    return InkWell(
-      onTap: (){
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ViewProfileScreen(user: widget.user)));
-      },
-      child: StreamBuilder(stream: APIs.getUserInfo(widget.user), builder: (context, snapshot){
+  @override
+  Widget build(BuildContext context) {
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-        final data = snapshot.data?.docs;
-        final list = data
-            ?.map((e) => ChatUser.fromJson(e.data()))
-            .toList() ?? [];
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor:
+        isDarkMode ? AppColors.darkBackground : AppColors.lightBackground,
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          flexibleSpace: _appBar(isDarkMode),
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: isDarkMode
+                        ? [
+                      AppColors.darkBackground,
+                      AppColors.darkBackground.withOpacity(0.95),
+                    ]
+                        : [
+                      AppColors.lightBackground,
+                      AppColors.lightBackground.withOpacity(0.95),
+                    ],
+                  ),
+                ),
+                child: StreamBuilder(
+                  stream: APIs.getAllMessages(widget.user),
+                  builder: (context, snapshot) {
+                    switch (snapshot.connectionState) {
+                      case ConnectionState.waiting:
+                      case ConnectionState.none:
+                        return const SizedBox();
 
-        return Row(children: [
-          // Back Button
-          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back, color: Colors.black54,)),
+                      case ConnectionState.active:
+                      case ConnectionState.done:
+                        final data = snapshot.data?.docs;
+                        _list = data
+                            ?.map((e) => Message.fromJson(e.data()))
+                            .toList() ??
+                            [];
 
-          // User Profile Picture
-          ClipRRect(
-            borderRadius: BorderRadius.circular(mq.height * .3),
-            child: CachedNetworkImage(
-              width: mq.height * .05,
-              height: mq.height * .05,
-              //fit: BoxFit.fill,
-              imageUrl: list.isNotEmpty ? list[0].image : widget.user.image,
-              //placeholder: (context, url) => CircularProgressIndicator(),
-              errorWidget: (context, url, error) => const CircleAvatar(child: Icon(CupertinoIcons.person, ),),
+                        if (_list.isNotEmpty) {
+                          return ListView.builder(
+                            reverse: true,
+                            itemCount: _list.length,
+                            padding: const EdgeInsets.only(top: 8, bottom: 8),
+                            physics: const BouncingScrollPhysics(),
+                            itemBuilder: (context, index) {
+                              return MessageCard(
+                                message: _list[index],
+                                onReply: _handleReply,
+                              );
+                            },
+                          );
+                        } else {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  CupertinoIcons.chat_bubble,
+                                  size: 80,
+                                  color: isDarkMode
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.lightTextSecondary,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Say Hi! 👋',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDarkMode
+                                        ? AppColors.darkText
+                                        : AppColors.lightText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                    }
+                  },
+                ),
+              ),
             ),
-          ),
 
-          // For Adding Some Space
-          const SizedBox(width: 10,),
+            // Typing indicator
+            StreamBuilder(
+              stream: APIs.getTypingStatus(widget.user.id),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data!.exists) {
+                  final data = snapshot.data!.data();
+                  final isTyping = data?['is_typing'] ?? false;
+                  if (isTyping) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.typing.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${widget.user.name} is typing',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontStyle: FontStyle.italic,
+                                    color: isDarkMode
+                                        ? AppColors.darkTextSecondary
+                                        : AppColors.lightTextSecondary,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                SizedBox(
+                                  width: 20,
+                                  height: 12,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                    children: List.generate(3, (index) {
+                                      return Container(
+                                        width: 4,
+                                        height: 4,
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.typing,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                }
+                return const SizedBox.shrink();
+              },
+            ),
 
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // To show Username
-              Text( list.isNotEmpty ? list[0].name : widget.user.name,
-                style: const TextStyle(fontSize: 16,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500),),
+            if (_isUploading)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Uploading...',
+                      style: TextStyle(
+                        color: isDarkMode
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
-              // For Adding Some Space
-              const SizedBox(height: 2,),
+            // Reply preview
+            if (_replyingTo != null) _buildReplyPreview(isDarkMode),
 
+            // Chat input
+            _chatInput(isDarkMode),
 
-              
-              // To show Last seen of the user
-               Text(list.isNotEmpty
-                   ? list[0].isOnline
-                   ? 'Online'
-                   : MyDateUntil.getLastActiveTime(context: context, lastActive: list[0].lastActive)
-                   : MyDateUntil.getLastActiveTime(context: context, lastActive: widget.user.lastActive),
-                  style: const TextStyle(fontSize: 14,
-                    color: Colors.black54,
-                  )),
-            ],),
-        ],);
-        
-    })   );
+            // Emoji picker
+            if (_showEmoji)
+              SafeArea(
+                top: false,
+                child: SizedBox(
+                  height: mq.height * .35,
+                  child: EmojiPicker(
+                    onBackspacePressed: () {},
+                    textEditingController: _textController,
+                    config: const Config(),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
-
-  //Bottom Chat input field
-Widget _chatInput(){
-    // Input Field & Button
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: mq.height * .01,
-        horizontal: mq.width * .01,
+  Widget _buildReplyPreview(bool isDarkMode) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDarkMode ? AppColors.darkSurface : AppColors.lightSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border(
+          left: BorderSide(color: AppColors.primary, width: 3),
+        ),
       ),
       child: Row(
         children: [
           Expanded(
-            child: Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              child: Row(children: [
-                //Emoji Button
-                IconButton(onPressed: (){
-                  FocusScope.of(context).unfocus();
-                  setState(() {
-                    _showEmoji = !_showEmoji;
-                  });
-                },
-                    icon: const Icon(Icons.emoji_emotions, color: Colors.deepOrange,size: 25,)),
-
-                //Input Field
-                 Expanded(child: TextField(
-                   textCapitalization: TextCapitalization.sentences,
-                  controller: _textController,
-                  keyboardType: TextInputType.multiline,
-                  maxLines: null,
-                  onTap: (){
-                    setState(() {
-                      if (_showEmoji) {
-                        _showEmoji = !_showEmoji;
-                      }
-                    });
-                  },
-                  decoration: const InputDecoration(
-                    hintStyle: TextStyle(color: Colors.deepOrange),
-                    hintText: 'Type Something...',
-                    border: InputBorder.none,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Replying to',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
                   ),
-                )),
-
-                // Pick image form Gallery Button
-                IconButton(onPressed: () async {
-                  final ImagePicker picker = ImagePicker();
-                  // Picking Multiple Images
-                  final List<XFile>  images =
-                      await picker.pickMultiImage(imageQuality: 70);
-
-                  // Uploading and sending images one by one
-                  for (var i in images){
-                    log('Image Path: ${i.path}');
-                    setState(() => _isUploading = true);
-                    await APIs.sendChatImage(widget.user ,File(i.path));}
-                  setState(() => _isUploading = false);
-                },
-                    icon: const Icon(Icons.image, color: Colors.deepOrange,size: 26,)),
-
-                // Take image form Camera Button
-                IconButton(onPressed: () async {
-                  final ImagePicker picker = ImagePicker();
-                  // Pick an image.
-                  final XFile? image =
-                      await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
-                  if(image != null){
-                    log('Image Path: ${image.path}');
-                    setState(() => _isUploading = true);
-                   await APIs.sendChatImage(widget.user ,File(image.path));
-                    setState(() => _isUploading = false);
-                  }
-                },
-                    icon: const Icon(Icons.camera_alt_rounded, color: Colors.deepOrange, size: 26,)),
-
-                //For Adding Some Space
-                SizedBox(width: mq.width * .015,),
-              ],),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _replyingTo!.msg,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDarkMode
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
-
-          //Send Messdage Button
-          MaterialButton(onPressed: (){
-            if(_textController.text.isNotEmpty){
-              if(_list.isEmpty){
-                // On first Message add user to my_user collection of chat
-                APIs.sendFirstMessage(widget.user, _textController.text, Type.text);
-              }else {
-                // Simply send message
-                APIs.sendMessage(widget.user, _textController.text, Type.text);
-              }
-              _textController.text = '';
-            }
-          },
-            minWidth: 0,
-            shape: const CircleBorder(),
-            padding: const EdgeInsets.only(top: 10, bottom: 10, right: 5, left: 10),
-            color: Colors.deepOrange,
-          child: const Icon(Icons.send,
-          color: Colors.white,
-          size: 28,),)
+          IconButton(
+            onPressed: _cancelReply,
+            icon: const Icon(
+              CupertinoIcons.xmark_circle_fill,
+              color: AppColors.lightTextSecondary,
+              size: 22,
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Widget _appBar(bool isDarkMode) {
+    return SafeArea(
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ViewProfileScreen(user: widget.user),
+            ),
+          );
+        },
+        child: StreamBuilder(
+          stream: APIs.getUserInfo(widget.user),
+          builder: (context, snapshot) {
+            final data = snapshot.data?.docs;
+            final list =
+                data?.map((e) => ChatUser.fromJson(e.data())).toList() ?? [];
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(
+                      CupertinoIcons.back,
+                      color: isDarkMode
+                          ? AppColors.darkText
+                          : AppColors.lightText,
+                    ),
+                  ),
+                  Hero(
+                    tag: 'profile_${widget.user.id}',
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: AppColors.primaryGradient,
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(25),
+                        child: CachedNetworkImage(
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.cover,
+                          imageUrl:
+                          list.isNotEmpty ? list[0].image : widget.user.image,
+                          errorWidget: (context, url, error) =>
+                          const CircleAvatar(
+                            child: Icon(CupertinoIcons.person),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          list.isNotEmpty ? list[0].name : widget.user.name,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode
+                                ? AppColors.darkText
+                                : AppColors.lightText,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          list.isNotEmpty
+                              ? list[0].isOnline
+                              ? 'Online'
+                              : MyDateUntil.getLastActiveTime(
+                            context: context,
+                            lastActive: list[0].lastActive,
+                          )
+                              : MyDateUntil.getLastActiveTime(
+                            context: context,
+                            lastActive: widget.user.lastActive,
+                          ),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: list.isNotEmpty && list[0].isOnline
+                                ? AppColors.online
+                                : (isDarkMode
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _chatInput(bool isDarkMode) {
+    return SafeArea(
+        top: false,
+        child: Container(
+        padding: EdgeInsets.symmetric(
+        horizontal: mq.width * .02,
+        vertical: mq.height * .01,
+    ),
+    decoration: BoxDecoration(
+    color: isDarkMode ? AppColors.darkSurface : AppColors.lightSurface,
+    boxShadow: [
+    BoxShadow(
+    color: isDarkMode
+    ? Colors.black.withOpacity(0.2)
+        : Colors.grey.withOpacity(0.1),
+    blurRadius: 10,
+    offset: const Offset(0, -2),
+    ),
+    ],
+    ),
+    child: Row(
+    children: [
+    // Plus button for attachments
+    IconButton(
+    onPressed: () {
+    FocusScope.of(context).unfocus();
+    _showAttachmentMenu(isDarkMode);
+    },
+    icon: Container(
+    padding: const EdgeInsets.all(6),
+    decoration: BoxDecoration(
+    color: AppColors.primary,
+    shape: BoxShape.circle,
+    ),
+    child: const Icon(
+    Icons.add,
+    color: Colors.white,
+    size: 22,
+    ),
+    ),
+    ),
+
+    // Input field
+    Expanded(
+    child: Container(
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+    decoration: BoxDecoration(
+    color: isDarkMode
+    ? const Color(0xFF2A2A2A)
+        : const Color(0xFFF5F5F5),
+    borderRadius: BorderRadius.circular(26),
+    ),
+    child: TextField(
+    textCapitalization: TextCapitalization.sentences,
+    controller: _textController,
+    keyboardType: TextInputType.multiline,
+    maxLines: null,
+    onTap: () {
+    if (_showEmoji) {
+    setState(() {
+    _showEmoji = false;
+    });
+    }
+    },
+    style: TextStyle(
+    color: isDarkMode ? AppColors.darkText : AppColors.lightText,
+    fontSize: 16,
+    ),
+    decoration: InputDecoration(
+    hintText: 'Message...',
+    hintStyle: TextStyle(
+    color: isDarkMode
+    ? AppColors.darkTextSecondary.withOpacity(0.6)
+        : AppColors.lightTextSecondary.withOpacity(0.6),
+    fontSize: 16,
+    ),
+    border: InputBorder.none,
+    isDense: true,
+    contentPadding: EdgeInsets.zero,
+    ),
+    ),
+    ),
+    ),
+
+    // Send button
+    Container(
+    margin: const EdgeInsets.only(left: 4),
+    decoration: BoxDecoration(
+    gradient: _textController.text.isNotEmpty
+    ? AppColors.primaryGradient
+        : null,
+    color: _textController.text.isEmpty
+    ? (isDarkMode
+    ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary)
+        : null,
+    shape: BoxShape.circle,
+    boxShadow: _textController.text.isNotEmpty
+    ? [
+    BoxShadow(
+    color: AppColors.primary.withOpacity(0.3),
+    blurRadius: 8,
+    offset: const Offset(0, 4),
+    ),
+    ]
+        : null,
+    ),
+    child: IconButton(
+    onPressed: () {
+    if (_textController.text.isNotEmpty) {
+    if (_replyingTo != null) {
+    // Send reply message
+    if (_list.isEmpty) {
+    APIs.sendFirstMessage(
+    widget.user,
+    _textController.text,
+    Type.text,
+    );
+    } else {
+    APIs.sendReplyMessage(
+    widget.user,
+    _textController.text,
+    Type.text,
+    _replyingTo!.sent,
+    _replyingTo!.msg,
+    );
+    }
+    _cancelReply();
+    } else {
+    // Send normal message
+    if (_list.isEmpty) {
+    APIs.sendFirstMessage(
+    widget.user,
+    _textController.text,
+    Type.text,
+    );
+    } else {
+    APIs.sendMessage(
+    widget.user,
+    _textController.text,
+    Type.text,
+    );
+    }
+    }
+    _textController.clear();
+    }
+    },
+    icon: Icon(
+    CupertinoIcons.arrow_up_circle_fill,
+    color: _textController.text.isNotEmpty
+    ? Colors.white
+        : (isDarkMode ? AppColors.darkText : AppColors.lightText)
+        .withOpacity(0.5),
+    size: 32,
+    ),
+    ),
+    ),
+    ],
+    ),
+    ));
+  }
 }
+
+class _AttachmentOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _AttachmentOption({
+    required this.icon,
+    required this.title,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? AppColors.darkBackground
+              : AppColors.lightBackground,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isDarkMode ? AppColors.darkText : AppColors.lightText,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
